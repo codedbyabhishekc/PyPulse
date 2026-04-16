@@ -1,30 +1,26 @@
 import subprocess
 import json
+import tempfile
+import shutil
 import os
 
 
 class GitSchemaLoader:
 
-    def __init__(self):
-        self.original_ref = None
+    def __init__(self, schema_path="app"):
+        self.schema_path = schema_path
 
     # =========================
-    # CHECKOUT GIT STATE
+    # READ FILE FROM GIT SNAPSHOT
     # =========================
-    def checkout(self, ref: str):
-        """
-        Switch git working directory to ref
-        """
-        subprocess.run(["git", "checkout", ref], check=True)
+    def load_from_git(self, ref: str):
 
-    # =========================
-    # LOAD SCHEMA FROM CURRENT STATE
-    # =========================
-    def load_schema(self):
-        """
-        Build schema from current checked-out code
-        """
-        from app.contracts.schema_builder import SchemaBuilder
+        cmd = ["git", "show", f"{ref}:app"]
+        result = subprocess.run(cmd, capture_output=True, text=True)
 
-        builder = SchemaBuilder("app.models")
-        return builder.build()
+        if result.returncode != 0:
+            raise Exception(f"Failed to read git ref: {ref}")
+
+        return result.stdout
+
+    # (we no longer use checkout at all)
