@@ -1,23 +1,30 @@
 import subprocess
 import json
+import os
 
 
 class GitSchemaLoader:
 
-    def __init__(self, schema_path="app/contracts/baseline_openapi.json"):
-        self.schema_path = schema_path
+    def __init__(self):
+        self.original_ref = None
 
-    def load_from_ref(self, ref: str):
-        cmd = ["git", "show", f"{ref}:{self.schema_path}"]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+    # =========================
+    # CHECKOUT GIT STATE
+    # =========================
+    def checkout(self, ref: str):
+        """
+        Switch git working directory to ref
+        """
+        subprocess.run(["git", "checkout", ref], check=True)
 
-        if result.returncode != 0:
-            raise Exception(f"Failed to load schema from {ref}")
+    # =========================
+    # LOAD SCHEMA FROM CURRENT STATE
+    # =========================
+    def load_schema(self):
+        """
+        Build schema from current checked-out code
+        """
+        from app.contracts.schema_builder import SchemaBuilder
 
-        return json.loads(result.stdout)
-
-    def load_main(self):
-        return self.load_from_ref("origin/main")
-
-    def load_pr(self):
-        return self.load_from_ref("HEAD")
+        builder = SchemaBuilder("app.models")
+        return builder.build()
