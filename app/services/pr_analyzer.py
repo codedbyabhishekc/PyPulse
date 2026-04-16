@@ -5,7 +5,7 @@ from app.contracts.diff_engine import DiffEngine
 class PRContractAnalyzer:
     """
     Orchestrates PR contract intelligence:
-    Git → OpenAPI → Schema Extract → Diff → Risk
+    Git → OpenAPI → Schema Extraction → Diff Engine
     """
 
     def __init__(self):
@@ -13,11 +13,12 @@ class PRContractAnalyzer:
         self.diff_engine = DiffEngine()
 
     # -----------------------------
-    # Extract correct model schema
+    # Extract actual model schema
     # -----------------------------
     def extract_schema(self, openapi: dict):
         """
-        OpenAPI → actual model schema
+        Extract target model from OpenAPI spec
+        (currently hardcoded to PickupCreate for v1)
         """
         return (
             openapi
@@ -31,20 +32,19 @@ class PRContractAnalyzer:
     # -----------------------------
     def analyze(self):
 
-        # 1. Load full OpenAPI from git
+        # 1. Load full OpenAPI from Git refs
         base_raw = self.loader.load_main()
         pr_raw = self.loader.load_pr()
 
-        print("BASE TYPE:", type(base_raw))
-        print("BASE KEYS:", base_raw.keys())
-        print("CURR TYPE:", type(pr_raw))
-        print("CURR KEYS:", pr_raw.keys())
-
-        # 2. Extract actual schema (IMPORTANT FIX)
+        # 2. Extract ONLY model schema (CRITICAL FIX)
         base_schema = self.extract_schema(base_raw)
         pr_schema = self.extract_schema(pr_raw)
 
-        # 3. Run diff engine
+        # 3. Debug (safe to remove later)
+        print("\n🧠 BASE SCHEMA KEYS:", base_schema.keys())
+        print("🧠 PR SCHEMA KEYS:", pr_schema.keys())
+
+        # 4. Run diff engine
         result = self.diff_engine.compare(base_schema, pr_schema)
 
         return result
