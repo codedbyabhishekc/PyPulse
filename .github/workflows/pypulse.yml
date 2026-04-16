@@ -1,37 +1,51 @@
-name: PyPulse Contract Intelligence
+name: PyPulse Contract Intelligence CI
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: read
-  issues: write
-  pull-requests: write
+    branches:
+      - main
 
 jobs:
-  analyze:
+  contract-analysis:
     runs-on: ubuntu-latest
 
     steps:
+      # =========================
+      # 1. Checkout repo
+      # =========================
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
+      # =========================
+      # 2. Setup Python
+      # =========================
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # =========================
+      # 3. Install dependencies
+      # =========================
       - name: Install dependencies
-        run: pip install requests pyyaml
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      - name: Run PyPulse Contract Intelligence
+      # =========================
+      # 4. Debug (optional but useful)
+      # =========================
+      - name: Verify installed packages
+        run: pip list
+
+      # =========================
+      # 5. Run Contract Intelligence Engine
+      # =========================
+      - name: Run PyPulse Contract CI
         env:
           PYTHONPATH: ${{ github.workspace }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.sha }}
         run: python scripts/contract_ci_gate.py
