@@ -1,39 +1,66 @@
-from app.services.git_loader import GitSchemaLoader
+from app.contracts.schema_builder import SchemaBuilder
 from app.contracts.diff_engine import DiffEngine
+import subprocess
 
 
 class PRContractAnalyzer:
-    """
-    Contract intelligence pipeline:
-    Models → Baseline → PR Schema → Diff
-    """
 
     def __init__(self):
-        self.loader = GitSchemaLoader()
+        self.builder = SchemaBuilder()
         self.diff_engine = DiffEngine()
 
-    def extract_schema(self, openapi: dict):
-        """
-        Extract first available Pydantic model schema
-        """
-        schemas = openapi.get("components", {}).get("schemas", {})
+    def checkout(self, ref):
+        # safer checkout
+        subprocess.run(["git", "checkout", ref], check=True)
 
-        if not schemas:
-            return {}
+    def analyze(self, base_ref="main", pr_ref="HEAD"):
 
-        # deterministic pick (sorted for consistency)
-        first_key = sorted(schemas.keys())[0]
-        return schemas[first_key]
+        # =====================
+        # BASE SNAPSHOT
+        # =====================
+        self.checkout(base_ref)
+        base_schema = self.builder.build()
 
-    def analyze(self):
+        # =====================
+        # PR SNAPSHOT
+        # =====================
+        self.checkout(pr_ref)
+        pr_schema = self.builder.build()
 
-        base_raw = self.loader.load_main()
-        pr_raw = self.loader.load_pr()
+        base_models = base_schema["components"]["schemas"]
+        pr_models = pr_schema["components"]["schemas"]
 
-        base_schema = self.extract_schema(base_raw)
-        pr_schema = self.extract_schema(pr_raw)
+        print("\n🧠 BASE MODELS:", list(base_models.keys()))
+        print("🧠 PR MODELS:", list(pr_models.keys()))
 
-        print("\n🧠 BASE SCHEMA:", base_schema.keys())
-        print("🧠 PR SCHEMA:", pr_schema.keys())
+        changes = []
 
-        return self.diff_engine.compare(base_schema, pr_schema)
+        # =====================
+        # FULL MODEL DIFF
+        # =====================
+        for model_name in base_models.keys() | pr_models.keys():
+
+            if model_name not in base_models:
+                changes.append({
+                    "type": "MODEL_ADDED",
+                    "model": model_name,
+                    "severity": "LOW"
+                })
+                continue
+
+            if model_name not in pr_models:
+                changes.append({
+                    "type": "MODEL_REMOVED",
+                    "model": model_name,
+                    "severity": "CRITICAL"
+                })
+                continue
+
+            changes += self.diff_engine.compare(
+                base_models[model_name],
+                pr_models[model_name]
+            )
+
+        return {
+            "changes": changes
+        }
