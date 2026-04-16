@@ -1,0 +1,23 @@
+{
+  "title": "PickupCreate",
+  "type": "object",
+  "properties": {
+    "sender": {
+      "title": "Sender",
+      "type": "string"
+    },
+    "receiver": {
+      "title": "Receiver",
+      "type": "string"
+    },
+    "address": {
+      "title": "Address",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receiver",
+    "address",
+    "sender"
+  ]
+}
