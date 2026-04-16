@@ -1,17 +1,8 @@
 import subprocess
-import json
-import tempfile
-import os
 
 
 class GitSchemaLoader:
 
-    def __init__(self):
-        pass
-
-    # =========================
-    # GET FILE CONTENT FROM GIT
-    # =========================
     def get_file(self, ref: str, path: str):
 
         cmd = ["git", "show", f"{ref}:{path}"]

@@ -1,5 +1,4 @@
 from app.services.git_loader import GitSchemaLoader
-from app.contracts.schema_builder import SchemaBuilder
 from app.contracts.diff_engine import DiffEngine
 import json
 
@@ -8,7 +7,6 @@ class PRContractAnalyzer:
 
     def __init__(self):
         self.loader = GitSchemaLoader()
-        self.builder = SchemaBuilder()
         self.diff_engine = DiffEngine()
 
     def extract_first(self, openapi):
@@ -22,7 +20,7 @@ class PRContractAnalyzer:
     def analyze(self, base_ref="origin/main", pr_ref="HEAD"):
 
         # =========================
-        # BASE (from git snapshot)
+        # BASE
         # =========================
         base_raw = self.loader.get_file(
             base_ref,
@@ -30,15 +28,15 @@ class PRContractAnalyzer:
         )
 
         # =========================
-        # PR (from git snapshot)
+        # PR
         # =========================
         pr_raw = self.loader.get_file(
             pr_ref,
             "app/contracts/baseline_openapi.json"
         )
 
-        base_schema = self.builder.build_from_openapi(base_raw)
-        pr_schema = self.builder.build_from_openapi(pr_raw)
+        base_schema = json.loads(base_raw)
+        pr_schema = json.loads(pr_raw)
 
         base_final = self.extract_first(base_schema)
         pr_final = self.extract_first(pr_schema)
