@@ -9,7 +9,7 @@ import subprocess
 def run():
 
     # =====================
-    # CHECK FOR UNCOMMITTED CHANGES
+    # CHECK FOR UNCOMMITTED CHANGES (ignore cache files)
     # =====================
     try:
         status = subprocess.check_output(
@@ -18,16 +18,28 @@ def run():
         ).decode().strip()
         
         if status:
-            print("⚠️ ERROR: You have uncommitted changes!")
-            print("\nModified files:")
-            for line in status.split('\n'):
-                print(f"  {line}")
-            print("\nPlease commit or stash your changes before running this script:")
-            print("  git add .")
-            print("  git commit -m 'your message'")
-            print("\nOr stash them:")
-            print("  git stash")
-            exit(1)
+            # Filter out __pycache__ and other ignored patterns
+            real_changes = [
+                line for line in status.split('\n')
+                if line and not any(pattern in line for pattern in [
+                    '__pycache__',
+                    '.pyc',
+                    'reports/',
+                    '.pytest_cache'
+                ])
+            ]
+            
+            if real_changes:
+                print("⚠️ ERROR: You have uncommitted changes!")
+                print("\nModified files:")
+                for line in real_changes:
+                    print(f"  {line}")
+                print("\nPlease commit or stash your changes before running this script:")
+                print("  git add .")
+                print("  git commit -m 'your message'")
+                print("\nOr stash them:")
+                print("  git stash")
+                exit(1)
     except Exception as e:
         print(f"⚠️ Warning: Could not check git status: {e}\n")
 
@@ -44,10 +56,12 @@ def run():
     print(f"🔍 GitHub Event: {github_event_name or 'Local Testing'}")
     
     if github_event_name == "pull_request" and github_base_ref:
+        # GitHub Actions PR context
         base_ref = f"origin/{github_base_ref}"
         pr_ref = "HEAD"
         print(f"🔍 PR Mode: Comparing {base_ref} → {pr_ref}\n")
     else:
+        # Local testing mode
         print("🔍 Local Mode")
         
         try:
