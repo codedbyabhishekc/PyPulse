@@ -4,47 +4,36 @@ from app.contracts.diff_engine import DiffEngine
 
 class PRContractAnalyzer:
     """
-    Orchestrates PR contract intelligence:
-    Git → OpenAPI → Schema Extraction → Diff Engine
+    Contract intelligence pipeline:
+    Models → Baseline → PR Schema → Diff
     """
 
     def __init__(self):
         self.loader = GitSchemaLoader()
         self.diff_engine = DiffEngine()
 
-    # -----------------------------
-    # Extract actual model schema
-    # -----------------------------
     def extract_schema(self, openapi: dict):
         """
-        Extract target model from OpenAPI spec
-        (currently hardcoded to PickupCreate for v1)
+        Extract first available Pydantic model schema
         """
-        return (
-            openapi
-            .get("components", {})
-            .get("schemas", {})
-            .get("PickupCreate", {})
-        )
+        schemas = openapi.get("components", {}).get("schemas", {})
 
-    # -----------------------------
-    # Main pipeline
-    # -----------------------------
+        if not schemas:
+            return {}
+
+        # deterministic pick (sorted for consistency)
+        first_key = sorted(schemas.keys())[0]
+        return schemas[first_key]
+
     def analyze(self):
 
-        # 1. Load full OpenAPI from Git refs
         base_raw = self.loader.load_main()
         pr_raw = self.loader.load_pr()
 
-        # 2. Extract ONLY model schema (CRITICAL FIX)
         base_schema = self.extract_schema(base_raw)
         pr_schema = self.extract_schema(pr_raw)
 
-        # 3. Debug (safe to remove later)
-        print("\n🧠 BASE SCHEMA KEYS:", base_schema.keys())
-        print("🧠 PR SCHEMA KEYS:", pr_schema.keys())
+        print("\n🧠 BASE SCHEMA:", base_schema.keys())
+        print("🧠 PR SCHEMA:", pr_schema.keys())
 
-        # 4. Run diff engine
-        result = self.diff_engine.compare(base_schema, pr_schema)
-
-        return result
+        return self.diff_engine.compare(base_schema, pr_schema)

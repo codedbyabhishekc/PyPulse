@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 
 class PickupCreate(BaseModel):
-    sender_id: int   # changed from int → string
+    sender_id: str   # was int
     receiver: str
-    phone: str       # new field
+    phone: str
+    email: str       # ADD NEW FIELD

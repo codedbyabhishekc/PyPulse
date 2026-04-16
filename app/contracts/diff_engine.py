@@ -1,28 +1,10 @@
-"""
-Diff Engine v2 (Production Grade)
----------------------------------
-- deep schema comparison
-- type drift detection
-- required/optional drift
-- enum + constraint detection
-- semantic rename detection
-- severity scoring + CI rules
-"""
-
-# -----------------------------
-# ENTRY
-# -----------------------------
 def run_diff(baseline: dict, current: dict):
     changes = diff_schema(baseline, current)
     return build_report(changes)
 
 
-# -----------------------------
-# CORE DIFF
-# -----------------------------
 def diff_schema(base, curr):
 
-    # SAFETY GUARD (IMPORTANT)
     base = base or {}
     curr = curr or {}
 
@@ -37,7 +19,6 @@ def diff_schema(base, curr):
 
     changes = []
 
-    # TYPE + FIELD DRIFT
     for k in base_keys & curr_keys:
         b = base_props[k]
         c = curr_props[k]
@@ -68,7 +49,6 @@ def diff_schema(base, curr):
                 "severity": "CRITICAL"
             })
 
-    # FIELD REMOVED
     for k in removed:
         changes.append({
             "type": "FIELD_REMOVED",
@@ -76,7 +56,6 @@ def diff_schema(base, curr):
             "severity": "CRITICAL"
         })
 
-    # FIELD ADDED
     for k in added:
         changes.append({
             "type": "FIELD_ADDED",
@@ -87,9 +66,6 @@ def diff_schema(base, curr):
     return changes
 
 
-# -----------------------------
-# RISK ENGINE
-# -----------------------------
 def severity_score(level):
     return {
         "CRITICAL": 10,
@@ -113,9 +89,6 @@ def ci_decision(changes):
     }
 
 
-# -----------------------------
-# REPORT
-# -----------------------------
 def build_report(changes):
     decision = ci_decision(changes)
 
