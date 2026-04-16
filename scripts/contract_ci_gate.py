@@ -1,7 +1,6 @@
 from app.services.pr_analyzer import PRContractAnalyzer
 from app.services.pr_report import PRReportBuilder
-from app.services.github_pr_commenter import GitHubPRCommenter
-
+from datetime import datetime
 import os
 
 
@@ -10,26 +9,34 @@ def run():
     analyzer = PRContractAnalyzer()
     reporter = PRReportBuilder()
 
-    # 1. Analyze PR vs main
-    result = analyzer.analyze()
+    # 🔥 FULL COMPILATION-BASED DIFF
+    result = analyzer.analyze(
+        base_ref="origin/main",
+        pr_ref="HEAD"
+    )
 
-    # 2. Build report
     report = reporter.build(result)
 
-    # 3. Print
+    print("\n" + "=" * 80)
+    print("🧠 PYPULSE CONTRACT INTELLIGENCE REPORT")
+    print("=" * 80)
     print(report)
+    print("=" * 80)
 
-    # 4. Post to GitHub PR
-    try:
-        commenter = GitHubPRCommenter()
-        commenter.publish(report)
-    except Exception as e:
-        print(f"GitHub comment failed: {e}")
+    os.makedirs("reports", exist_ok=True)
 
-    # 5. CI decision
-    if result.get("ci_status") == "FAILED":
+    filename = f"reports/pypulse_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(report)
+
+    print(f"\n📄 Report saved: {filename}")
+
+    if result.get("summary", {}).get("critical", 0) > 0:
+        print("\n❌ CI FAILED")
         exit(1)
 
+    print("\n✅ CI PASSED")
     exit(0)
 
 
