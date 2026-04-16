@@ -9,22 +9,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      # 1. Checkout full repo (required for git show + imports)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
+      # 3. Install dependencies
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests pyyaml
 
-      - name: Run PyPulse
+      # 4. Run PyPulse (IMPORTANT FIX HERE)
+      - name: Run PyPulse Contract Intelligence
         env:
+          PYTHONPATH: ${{ github.workspace }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: python scripts/contract_ci_gate.py
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python scripts/contract_ci_gate.py
