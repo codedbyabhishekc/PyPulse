@@ -111,20 +111,20 @@ class DiffEngine:
     def compare(self, baseline: dict, current: dict, model_name: str = None):
         """
         Compare two schemas and return a list of changes.
-
+        
         Args:
             baseline: Base schema dict
             current: Current schema dict
             model_name: Optional model name to include in change dicts
-
+            
         Returns:
             List of change dicts
         """
         changes = diff_schema(baseline, current)
-
+        
         # Add model_name to each change if provided
         if model_name:
             for change in changes:
                 change["model"] = model_name
-
+        
         return changes
