@@ -7,3 +7,4 @@ class PickupCreate(BaseModel):
     email_address: str       # ADD NEW FIELD
     area: str
     counry:str
+    current_location: str
