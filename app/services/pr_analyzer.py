@@ -1,47 +1,66 @@
-from app.services.git_loader import GitSchemaLoader
+from app.contracts.schema_builder import SchemaBuilder
 from app.contracts.diff_engine import DiffEngine
-import json
+import subprocess
 
 
 class PRContractAnalyzer:
 
     def __init__(self):
-        self.loader = GitSchemaLoader()
+        self.builder = SchemaBuilder()
         self.diff_engine = DiffEngine()
 
-    def extract_first(self, openapi):
-
-        schemas = openapi.get("components", {}).get("schemas", {})
-        if not schemas:
-            return {}
-
-        return schemas[list(schemas.keys())[0]]
+    def checkout(self, ref):
+        subprocess.run(["git", "checkout", ref], check=True)
 
     def analyze(self, base_ref="origin/main", pr_ref="HEAD"):
 
-        # =========================
+        # =====================
         # BASE
-        # =========================
-        base_raw = self.loader.get_file(
-            base_ref,
-            "app/contracts/baseline_openapi.json"
-        )
+        # =====================
+        self.checkout(base_ref)
+        base_schema = self.builder.build()
 
-        # =========================
+        # =====================
         # PR
-        # =========================
-        pr_raw = self.loader.get_file(
-            pr_ref,
-            "app/contracts/baseline_openapi.json"
-        )
+        # =====================
+        self.checkout(pr_ref)
+        pr_schema = self.builder.build()
 
-        base_schema = json.loads(base_raw)
-        pr_schema = json.loads(pr_raw)
+        base_models = base_schema["components"]["schemas"]
+        pr_models = pr_schema["components"]["schemas"]
 
-        base_final = self.extract_first(base_schema)
-        pr_final = self.extract_first(pr_schema)
+        print("\n🧠 BASE MODELS:", list(base_models.keys()))
+        print("🧠 PR MODELS:", list(pr_models.keys()))
 
-        print("\n🧠 BASE KEYS:", base_final.keys())
-        print("🧠 PR KEYS:", pr_final.keys())
+        changes = []
 
-        return self.diff_engine.compare(base_final, pr_final)
+        # =====================
+        # MODEL LEVEL DIFF
+        # =====================
+        for model_name in base_models.keys() | pr_models.keys():
+
+            if model_name not in base_models:
+                changes.append({
+                    "type": "MODEL_ADDED",
+                    "model": model_name,
+                    "severity": "LOW"
+                })
+                continue
+
+            if model_name not in pr_models:
+                changes.append({
+                    "type": "MODEL_REMOVED",
+                    "model": model_name,
+                    "severity": "CRITICAL"
+                })
+                continue
+
+            # deep diff
+            changes += self.diff_engine.compare(
+                base_models[model_name],
+                pr_models[model_name]
+            )
+
+        return {
+            "changes": changes
+        }
