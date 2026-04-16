@@ -10,18 +10,19 @@ class PRContractAnalyzer:
         self.diff_engine = DiffEngine()
 
     def checkout(self, ref):
+        # safer checkout
         subprocess.run(["git", "checkout", ref], check=True)
 
-    def analyze(self, base_ref="origin/main", pr_ref="HEAD"):
+    def analyze(self, base_ref="main", pr_ref="HEAD"):
 
         # =====================
-        # BASE
+        # BASE SNAPSHOT
         # =====================
         self.checkout(base_ref)
         base_schema = self.builder.build()
 
         # =====================
-        # PR
+        # PR SNAPSHOT
         # =====================
         self.checkout(pr_ref)
         pr_schema = self.builder.build()
@@ -35,7 +36,7 @@ class PRContractAnalyzer:
         changes = []
 
         # =====================
-        # MODEL LEVEL DIFF
+        # FULL MODEL DIFF
         # =====================
         for model_name in base_models.keys() | pr_models.keys():
 
@@ -55,7 +56,6 @@ class PRContractAnalyzer:
                 })
                 continue
 
-            # deep diff
             changes += self.diff_engine.compare(
                 base_models[model_name],
                 pr_models[model_name]

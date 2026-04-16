@@ -11,13 +11,15 @@ jobs:
 
     steps:
       # =========================
-      # 1. Checkout repo
+      # Checkout FULL history (IMPORTANT FIX)
       # =========================
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       # =========================
-      # 2. Setup Python
+      # Setup Python
       # =========================
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,7 +27,7 @@ jobs:
           python-version: "3.10"
 
       # =========================
-      # 3. Install dependencies
+      # Install dependencies
       # =========================
       - name: Install dependencies
         run: |
@@ -33,13 +35,13 @@ jobs:
           pip install -r requirements.txt
 
       # =========================
-      # 4. Debug (optional but useful)
+      # Debug (optional)
       # =========================
       - name: Verify installed packages
         run: pip list
 
       # =========================
-      # 5. Run Contract Intelligence Engine
+      # Run Contract CI
       # =========================
       - name: Run PyPulse Contract CI
         env:
