@@ -40,4 +40,23 @@ class SchemaBuilder:
             "components": {
                 "schemas": schemas
             }
+        }import json
+
+
+class SchemaBuilder:
+
+    def build_from_openapi(self, openapi_str: str):
+
+        openapi = json.loads(openapi_str)
+
+        schemas = openapi.get("components", {}).get("schemas", {})
+
+        if not schemas:
+            return {}
+
+        # pick all schemas (important fix)
+        return {
+            "components": {
+                "schemas": schemas
+            }
         }
