@@ -1,0 +1,22 @@
+# Create .gitignore
+New-Item -Path .gitignore -ItemType File -Force
+
+# Add Python patterns
+@"
+# Python
+__pycache__/
+*.py[cod]
+*`$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# PyPulse specific
+reports/
+*.pyc
+.pytest_cache/
+"@ | Set-Content .gitignore
