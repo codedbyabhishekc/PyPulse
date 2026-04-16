@@ -3,37 +3,39 @@ from app.contracts.diff_engine import DiffEngine
 
 
 class PRContractAnalyzer:
-    """
-    Contract intelligence pipeline:
-    Models → Baseline → PR Schema → Diff
-    """
 
     def __init__(self):
         self.loader = GitSchemaLoader()
         self.diff_engine = DiffEngine()
 
-    def extract_schema(self, openapi: dict):
-        """
-        Extract first available Pydantic model schema
-        """
+    def extract_first_schema(self, openapi: dict):
+
         schemas = openapi.get("components", {}).get("schemas", {})
 
         if not schemas:
             return {}
 
-        # deterministic pick (sorted for consistency)
-        first_key = sorted(schemas.keys())[0]
-        return schemas[first_key]
+        return schemas[list(schemas.keys())[0]]
 
-    def analyze(self):
+    # ✅ FIXED SIGNATURE
+    def analyze(self, base_ref="origin/main", pr_ref="HEAD"):
 
-        base_raw = self.loader.load_main()
-        pr_raw = self.loader.load_pr()
+        # =========================
+        # BASE SNAPSHOT
+        # =========================
+        self.loader.checkout(base_ref)
+        base_raw = self.loader.load_schema()
 
-        base_schema = self.extract_schema(base_raw)
-        pr_schema = self.extract_schema(pr_raw)
+        # =========================
+        # PR SNAPSHOT
+        # =========================
+        self.loader.checkout(pr_ref)
+        pr_raw = self.loader.load_schema()
 
-        print("\n🧠 BASE SCHEMA:", base_schema.keys())
-        print("🧠 PR SCHEMA:", pr_schema.keys())
+        base_schema = self.extract_first_schema(base_raw)
+        pr_schema = self.extract_first_schema(pr_raw)
+
+        print("\n🧠 BASE SCHEMA KEYS:", base_schema.keys())
+        print("🧠 PR SCHEMA KEYS:", pr_schema.keys())
 
         return self.diff_engine.compare(base_schema, pr_schema)
