@@ -1,41 +1,37 @@
-from app.services.git_loader import GitSchemaLoader
 from app.contracts.diff_engine import DiffEngine
+from app.contracts.schema_builder import SchemaBuilder
 
 
 class PRContractAnalyzer:
 
     def __init__(self):
-        self.loader = GitSchemaLoader()
+        self.builder = SchemaBuilder()
         self.diff_engine = DiffEngine()
 
-    def extract_first_schema(self, openapi: dict):
+    def extract_first(self, openapi):
 
         schemas = openapi.get("components", {}).get("schemas", {})
-
         if not schemas:
             return {}
 
         return schemas[list(schemas.keys())[0]]
 
-    # ✅ FIXED SIGNATURE
     def analyze(self, base_ref="origin/main", pr_ref="HEAD"):
 
         # =========================
-        # BASE SNAPSHOT
+        # BUILD BASE
         # =========================
-        self.loader.checkout(base_ref)
-        base_raw = self.loader.load_schema()
+        base_raw = self.builder.build_from_ref(base_ref)
 
         # =========================
-        # PR SNAPSHOT
+        # BUILD PR
         # =========================
-        self.loader.checkout(pr_ref)
-        pr_raw = self.loader.load_schema()
+        pr_raw = self.builder.build_from_ref(pr_ref)
 
-        base_schema = self.extract_first_schema(base_raw)
-        pr_schema = self.extract_first_schema(pr_raw)
+        base_schema = self.extract_first(base_raw)
+        pr_schema = self.extract_first(pr_raw)
 
-        print("\n🧠 BASE SCHEMA KEYS:", base_schema.keys())
-        print("🧠 PR SCHEMA KEYS:", pr_schema.keys())
+        print("\n🧠 BASE:", base_schema.keys())
+        print("🧠 PR:", pr_schema.keys())
 
         return self.diff_engine.compare(base_schema, pr_schema)
