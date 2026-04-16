@@ -58,9 +58,37 @@ class PRContractAnalyzer:
 
             changes += self.diff_engine.compare(
                 base_models[model_name],
-                pr_models[model_name]
+                pr_models[model_name],
+                model_name=model_name
             )
 
+        # =====================
+        # CATEGORIZE BY RISK
+        # =====================
+        risk = {
+            "CRITICAL": [],
+            "HIGH": [],
+            "MEDIUM": [],
+            "LOW": []
+        }
+
+        for change in changes:
+            severity = change.get("severity", "LOW")
+            model = change.get("model", "Unknown")
+            change_type = change.get("type", "Unknown")
+            field = change.get("field", "")
+
+            # Format the message
+            if field:
+                message = f"`{model}.{field}` - {change_type}"
+            else:
+                message = f"`{model}` - {change_type}"
+
+            risk[severity].append(message)
+
         return {
-            "changes": changes
+            "base": base_ref,
+            "head": pr_ref,
+            "changes": changes,
+            "risk": risk
         }
