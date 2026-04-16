@@ -1,22 +1,27 @@
-import inspect
 import importlib
+import pkgutil
+import inspect
 from pydantic import BaseModel
+import app.models as models_pkg
 
 
 class SchemaBuilder:
 
-    def build(self, module_path="app.models"):
-
-        module = importlib.import_module(module_path)
+    def build(self, package=models_pkg):
 
         schemas = {}
 
-        for name in dir(module):
-            obj = getattr(module, name)
+        # 👇 iterate ALL files in app/models/
+        for _, module_name, _ in pkgutil.iter_modules(package.__path__):
 
-            if inspect.isclass(obj) and issubclass(obj, BaseModel):
-                if obj is not BaseModel:
-                    schemas[name] = obj.model_json_schema()
+            module = importlib.import_module(f"{package.__name__}.{module_name}")
+
+            for name in dir(module):
+                obj = getattr(module, name)
+
+                if inspect.isclass(obj) and issubclass(obj, BaseModel):
+                    if obj is not BaseModel:
+                        schemas[name] = obj.model_json_schema()
 
         return {
             "components": {
