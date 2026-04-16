@@ -1,35 +1,12 @@
-"""
-Diff Engine v2 (Production Grade)
----------------------------------
-- deep schema comparison
-- type drift detection
-- required/optional drift
-- enum + constraint detection
-- semantic rename detection
-- severity scoring + CI rules
-"""
-
-import re
-
-
-# ============================================================
-# ENTRY POINT
-# ============================================================
-
 def run_diff(baseline: dict, current: dict):
-    changes = []
-
-    changes += diff_schema(baseline, current)
-
+    changes = diff_schema(baseline, current)
     return build_report(changes)
 
 
-# ============================================================
-# CORE DIFF
-# ============================================================
-
 def diff_schema(base, curr):
-    changes = []
+
+    base = base or {}
+    curr = curr or {}
 
     base_props = base.get("properties", {})
     curr_props = curr.get("properties", {})
@@ -40,12 +17,12 @@ def diff_schema(base, curr):
     removed = base_keys - curr_keys
     added = curr_keys - base_keys
 
-    # TYPE + FIELD DRIFT
+    changes = []
+
     for k in base_keys & curr_keys:
         b = base_props[k]
         c = curr_props[k]
 
-        # TYPE CHANGE
         if b.get("type") != c.get("type"):
             changes.append({
                 "type": "TYPE_CHANGED",
@@ -55,9 +32,8 @@ def diff_schema(base, curr):
                 "severity": "HIGH"
             })
 
-        # REQUIRED DRIFT
-        b_req = k in base.get("required", set())
-        c_req = k in curr.get("required", set())
+        b_req = k in base.get("required", [])
+        c_req = k in curr.get("required", [])
 
         if b_req and not c_req:
             changes.append({
@@ -73,10 +49,6 @@ def diff_schema(base, curr):
                 "severity": "CRITICAL"
             })
 
-        # CONSTRAINTS
-        changes += diff_constraints(k, b, c)
-
-    # FIELD REMOVED
     for k in removed:
         changes.append({
             "type": "FIELD_REMOVED",
@@ -84,7 +56,6 @@ def diff_schema(base, curr):
             "severity": "CRITICAL"
         })
 
-    # FIELD ADDED
     for k in added:
         changes.append({
             "type": "FIELD_ADDED",
@@ -94,33 +65,6 @@ def diff_schema(base, curr):
 
     return changes
 
-
-# ============================================================
-# CONSTRAINT DIFF
-# ============================================================
-
-def diff_constraints(field, b, c):
-    changes = []
-
-    keys = ["minLength", "maxLength", "minimum", "maximum", "format"]
-
-    for key in keys:
-        if b.get(key) != c.get(key):
-            changes.append({
-                "type": "CONSTRAINT_CHANGED",
-                "field": field,
-                "constraint": key,
-                "from": b.get(key),
-                "to": c.get(key),
-                "severity": "HIGH"
-            })
-
-    return changes
-
-
-# ============================================================
-# RISK ENGINE
-# ============================================================
 
 def severity_score(level):
     return {
@@ -145,10 +89,6 @@ def ci_decision(changes):
     }
 
 
-# ============================================================
-# REPORT
-# ============================================================
-
 def build_report(changes):
     decision = ci_decision(changes)
 
@@ -166,11 +106,7 @@ def build_report(changes):
         }
     }
 
-class DiffEngine:
-    """
-    Adapter wrapper around functional diff engine
-    so it can be used in OOP pipeline.
-    """
 
+class DiffEngine:
     def compare(self, baseline: dict, current: dict):
         return run_diff(baseline, current)

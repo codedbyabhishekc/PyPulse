@@ -4,12 +4,17 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -20,11 +25,13 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install requests pyyaml
 
-      - name: Run PyPulse
+      - name: Run PyPulse Contract Intelligence
         env:
+          PYTHONPATH: ${{ github.workspace }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          GITHUB_SHA: ${{ github.sha }}
         run: python scripts/contract_ci_gate.py
